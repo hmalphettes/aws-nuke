@@ -1,0 +1,37 @@
+regions:
+- demo10
+
+# inspired by https://www.terraform.io/docs/providers/aws/guides/custom-service-endpoints.html
+endpoints:
+- region: demo10
+  tls_insecure_skip_verify: true
+  services:
+  - service: ec2
+    url: https://demo10.stratoscale.com/api/v2/aws/ec2
+  - service: rds
+    url: https://demo10.stratoscale.com/api/v2/aws/rds
+  - service: autoscaling
+    url: https://demo10.stratoscale.com/api/v2/aws/autoscaling
+  - service: elbv2
+    url: https://demo10.stratoscale.com/api/v2/aws/elbv2
+  - service: s3
+    url: https://demo10.stratoscale.com:1060
+
+# resource-types:
+#   targets:
+#   - EC2Instance
+#   - EC2VPC
+#   - EC2Subnet
+#   - EC2Volume
+#   - EC2SecurityGroup
+#   - EC2Address
+#   - EC2DHCPOptions
+#   - EC2RouteTable
+#   - CloudFormationStack
+
+account-blacklist:
+- "999999999999" # production
+
+accounts:
+  "account-id-of-custom-region-demo10": {}
+  "000000000000": {} # aws-nuke-example

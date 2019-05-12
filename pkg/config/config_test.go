@@ -89,15 +89,17 @@ func TestLoadExampleConfig(t *testing.T) {
 		},
 		CustomEndpoints: []*CustomRegion{
 			&CustomRegion{
-				Region: "demo10",
+				Region:                "demo10",
+				TLSInsecureSkipVerify: true,
 				Services: CustomServices{
 					&CustomService{
 						Service: "ec2",
 						URL:     "https://demo10.cloud.internal/api/v2/aws/ec2",
 					},
 					&CustomService{
-						Service: "s3",
-						URL:     "https://demo10.cloud.internal:1060",
+						Service:               "s3",
+						URL:                   "https://demo10.cloud.internal:1060",
+						TLSInsecureSkipVerify: true,
 					},
 				},
 			},

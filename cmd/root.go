@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"os"
+
 	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
 	"github.com/rebuy-de/aws-nuke/pkg/config"
 	"github.com/rebuy-de/aws-nuke/resources"
@@ -13,9 +15,10 @@ import (
 
 func NewRootCommand() *cobra.Command {
 	var (
-		params  NukeParameters
-		creds   awsutil.Credentials
-		verbose bool
+		params        NukeParameters
+		creds         awsutil.Credentials
+		defaultRegion string
+		verbose       bool
 	)
 
 	command := &cobra.Command{
@@ -39,6 +42,10 @@ func NewRootCommand() *cobra.Command {
 			return err
 		}
 
+		if !creds.HasKeys() && !creds.HasProfile() && defaultRegion != "" {
+			creds.AccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+			creds.SecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+		}
 		err = creds.Validate()
 		if err != nil {
 			return err
@@ -46,24 +53,19 @@ func NewRootCommand() *cobra.Command {
 
 		command.SilenceUsage = true
 
-		defaultRegion, err := cmd.Flags().GetString("default-region")
-		if err != nil {
-			return err
-		}
-		if defaultRegion != "" {
-			awsutil.DefaultRegionID = defaultRegion
-		}
-
 		config, err := config.Load(params.ConfigPath)
 		if err != nil {
 			log.Errorf("Failed to parse config file %s", params.ConfigPath)
 			return err
 		}
 
-		if config.CustomEndpoints.GetRegion(defaultRegion) == nil {
-			err = fmt.Errorf("The custom region '%s' must be specified in the configuration 'endpoints'", defaultRegion)
-			log.Error(err.Error())
-			return err
+		if defaultRegion != "" {
+			awsutil.DefaultRegionID = defaultRegion
+			if config.CustomEndpoints.GetRegion(defaultRegion) == nil {
+				err = fmt.Errorf("The custom region '%s' must be specified in the configuration 'endpoints'", defaultRegion)
+				log.Error(err.Error())
+				return err
+			}
 		}
 
 		account, err := awsutil.NewAccount(creds, config.CustomEndpoints)
@@ -106,7 +108,7 @@ func NewRootCommand() *cobra.Command {
 			"Must be used together with --access-key-id and --secret-access-key. "+
 			"Cannot be used together with --profile.")
 	command.PersistentFlags().StringVar(
-		&creds.SessionToken, "default-region", "",
+		&defaultRegion, "default-region", "",
 		"Custom default region name.")
 
 	command.PersistentFlags().StringSliceVarP(
