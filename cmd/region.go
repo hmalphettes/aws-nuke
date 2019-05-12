@@ -22,6 +22,7 @@ func NewRegion(name string, sessionFactory SessionFactory) *Region {
 		Name:       name,
 		NewSession: sessionFactory,
 		lock:       &sync.RWMutex{},
+		cache:      make(map[string]*session.Session),
 	}
 }
 
@@ -32,20 +33,20 @@ func (region *Region) Session(resourceType string) (*session.Session, error) {
 
 	// Need to read
 	region.lock.RLock()
-	defer region.lock.RUnlock()
 	sess := region.cache[resourceType]
+	region.lock.RUnlock()
 	if sess != nil {
 		return sess, nil
 	}
-	region.lock.RUnlock()
 
 	// Need to write:
 	region.lock.Lock()
-	defer region.lock.Unlock()
 	sess, err := region.NewSession(region.Name, resourceType)
 	if err != nil {
+		region.lock.Unlock()
 		return nil, err
 	}
 	region.cache[resourceType] = sess
+	region.lock.Unlock()
 	return sess, nil
 }

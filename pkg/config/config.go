@@ -28,7 +28,7 @@ type Nuke struct {
 	Accounts         map[string]Account           `yaml:"accounts"`
 	ResourceTypes    ResourceTypes                `yaml:"resource-types"`
 	Presets          map[string]PresetDefinitions `yaml:"presets"`
-	CustomEndpoints  CustomEndpoints              `yaml:"endpoints,omitempty"`
+	CustomEndpoints  CustomEndpoints              `yaml:"endpoints"`
 }
 
 type PresetDefinitions struct {
@@ -44,8 +44,9 @@ type CustomService struct {
 type CustomServices []*CustomService
 
 type CustomRegion struct {
-	Region   string         `yaml:"region"`
-	Services CustomServices `yaml:"services"`
+	Region                string         `yaml:"region"`
+	Services              CustomServices `yaml:"services"`
+	TLSInsecureSkipVerify bool           `yaml:"tls_insecure_skip_verify"`
 }
 
 type CustomEndpoints []*CustomRegion
@@ -196,6 +197,11 @@ func (c *Nuke) resolveDeprecations() error {
 func (endpoints CustomEndpoints) GetRegion(region string) *CustomRegion {
 	for _, r := range endpoints {
 		if r.Region == region {
+			if r.TLSInsecureSkipVerify {
+				for _, s := range r.Services {
+					s.TLSInsecureSkipVerify = r.TLSInsecureSkipVerify
+				}
+			}
 			return r
 		}
 	}
@@ -205,7 +211,7 @@ func (endpoints CustomEndpoints) GetRegion(region string) *CustomRegion {
 // GetService returns the custom region or nil when no such custom endpoints are defined for this region
 func (services CustomServices) GetService(serviceType string) *CustomService {
 	for _, s := range services {
-		if s.Service == serviceType {
+		if strings.HasPrefix(strings.ToLower(serviceType), s.Service) {
 			return s
 		}
 	}

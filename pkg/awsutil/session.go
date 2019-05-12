@@ -79,11 +79,9 @@ func (c *Credentials) rootSession() (*session.Session, error) {
 		case c.HasKeys():
 			opts = session.Options{
 				Config: aws.Config{
-					Credentials: credentials.NewStaticCredentials(
-						strings.TrimSpace(c.AccessKeyID),
-						strings.TrimSpace(c.SecretAccessKey),
-						strings.TrimSpace(c.SessionToken),
-					)}}
+					Credentials: c.awsNewStaticCredentials(),
+				},
+			}
 		}
 
 		opts.Config.Region = aws.String(region)
@@ -100,8 +98,19 @@ func (c *Credentials) rootSession() (*session.Session, error) {
 	return c.session, nil
 }
 
+func (c *Credentials) awsNewStaticCredentials() *credentials.Credentials {
+	if !c.HasKeys() {
+		return credentials.NewEnvCredentials()
+	}
+	return credentials.NewStaticCredentials(
+		strings.TrimSpace(c.AccessKeyID),
+		strings.TrimSpace(c.SecretAccessKey),
+		strings.TrimSpace(c.SessionToken),
+	)
+}
+
 func (c *Credentials) NewSession(region, resourceType string) (*session.Session, error) {
-	log.Debugf("creating new session in %s", region)
+	log.Debugf("creating new session in %s for %s", region, resourceType)
 
 	global := false
 
@@ -111,34 +120,32 @@ func (c *Credentials) NewSession(region, resourceType string) (*session.Session,
 	}
 
 	var sess *session.Session
+	isCustom := false
 	if customRegion := c.CustomEndpoints.GetRegion(region); customRegion != nil {
 		customService := customRegion.Services.GetService(resourceType)
 		if customService == nil {
 			return nil, ErrSkipRequest(fmt.Sprintf(
-				"service '%s' is not available in region '%s'",
+				".service '%s' is not available in region '%s'",
 				resourceType, region))
 		}
 		conf := &aws.Config{
-			Region:   &region,
-			Endpoint: &customService.URL,
-			Credentials: credentials.NewStaticCredentialsFromCreds(
-				credentials.Value{
-					AccessKeyID:     c.AccessKeyID,
-					SecretAccessKey: c.SecretAccessKey,
-					SessionToken:    c.SessionToken,
-				},
-			),
+			Region:      &region,
+			Endpoint:    &customService.URL,
+			Credentials: c.awsNewStaticCredentials(),
 		}
 		if customService.TLSInsecureSkipVerify {
 			conf.HTTPClient = &http.Client{Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}}
 		}
+		// ll := aws.LogDebugWithEventStreamBody
+		// conf.LogLevel = &ll
 		var err error
 		sess, err = session.NewSession(conf)
 		if err != nil {
 			return nil, err
 		}
+		isCustom = true
 	}
 
 	if sess == nil {
@@ -160,9 +167,10 @@ func (c *Credentials) NewSession(region, resourceType string) (*session.Session,
 		log.Debugf("received AWS response:\n%s", DumpResponse(r.HTTPResponse))
 	})
 
-	sess.Handlers.Validate.PushFront(skipMissingServiceInRegionHandler)
-	sess.Handlers.Validate.PushFront(skipGlobalHandler(global))
-
+	if !isCustom {
+		sess.Handlers.Validate.PushFront(skipMissingServiceInRegionHandler)
+		sess.Handlers.Validate.PushFront(skipGlobalHandler(global))
+	}
 	return sess, nil
 }
 

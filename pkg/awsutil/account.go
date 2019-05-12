@@ -9,21 +9,15 @@ import (
 
 type Account struct {
 	Credentials
-	CustomEndpoints config.CustomEndpoints
 
 	id      string
 	aliases []string
 }
 
 func NewAccount(creds Credentials, endpoints config.CustomEndpoints) (*Account, error) {
+	creds.CustomEndpoints = endpoints
 	account := Account{
-		Credentials:     creds,
-		CustomEndpoints: endpoints,
-	}
-
-	defaultSession, err := account.NewSession(DefaultRegionID, "")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create default session in %s", DefaultRegionID)
+		Credentials: creds,
 	}
 
 	customStackSupportSTSAndIAM := true
@@ -35,9 +29,14 @@ func NewAccount(creds Credentials, endpoints config.CustomEndpoints) (*Account, 
 		}
 	}
 	if !customStackSupportSTSAndIAM {
-		account.aliases = []string{"Your account for the custom region " + DefaultRegionID}
 		account.id = "account-id-of-custom-region-" + DefaultRegionID
+		account.aliases = []string{account.id}
 		return &account, nil
+	}
+
+	defaultSession, err := account.NewSession(DefaultRegionID, "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create default session in %s", DefaultRegionID)
 	}
 
 	identityOutput, err := sts.New(defaultSession).GetCallerIdentity(nil)
