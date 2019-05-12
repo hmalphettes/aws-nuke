@@ -1,6 +1,8 @@
 package awsutil
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
@@ -77,4 +79,17 @@ func (a *Account) Alias() string {
 
 func (a *Account) Aliases() []string {
 	return a.aliases
+}
+
+func (a *Account) ResourceTypeToServiceType(regionName, resourceType string) string {
+	customRegion := a.CustomEndpoints.GetRegion(regionName)
+	if customRegion == nil {
+		return "-" // standard public AWS.
+	}
+	for _, e := range customRegion.Services {
+		if strings.HasPrefix(strings.ToLower(resourceType), e.Service) {
+			return e.Service
+		}
+	}
+	return ""
 }

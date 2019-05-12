@@ -109,8 +109,8 @@ func (c *Credentials) awsNewStaticCredentials() *credentials.Credentials {
 	)
 }
 
-func (c *Credentials) NewSession(region, resourceType string) (*session.Session, error) {
-	log.Debugf("creating new session in %s for %s", region, resourceType)
+func (c *Credentials) NewSession(region, serviceType string) (*session.Session, error) {
+	log.Debugf("creating new session in %s for %s", region, serviceType)
 
 	global := false
 
@@ -122,11 +122,11 @@ func (c *Credentials) NewSession(region, resourceType string) (*session.Session,
 	var sess *session.Session
 	isCustom := false
 	if customRegion := c.CustomEndpoints.GetRegion(region); customRegion != nil {
-		customService := customRegion.Services.GetService(resourceType)
+		customService := customRegion.Services.GetService(serviceType)
 		if customService == nil {
 			return nil, ErrSkipRequest(fmt.Sprintf(
 				".service '%s' is not available in region '%s'",
-				resourceType, region))
+				serviceType, region))
 		}
 		conf := &aws.Config{
 			Region:      &region,

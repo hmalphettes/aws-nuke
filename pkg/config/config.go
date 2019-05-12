@@ -211,7 +211,7 @@ func (endpoints CustomEndpoints) GetRegion(region string) *CustomRegion {
 // GetService returns the custom region or nil when no such custom endpoints are defined for this region
 func (services CustomServices) GetService(serviceType string) *CustomService {
 	for _, s := range services {
-		if strings.HasPrefix(strings.ToLower(serviceType), s.Service) {
+		if serviceType == s.Service {
 			return s
 		}
 	}
