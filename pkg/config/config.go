@@ -36,8 +36,9 @@ type PresetDefinitions struct {
 }
 
 type CustomService struct {
-	Service string `yaml:"service"`
-	URL     string `yaml:"url"`
+	Service               string `yaml:"service"`
+	URL                   string `yaml:"url"`
+	TLSInsecureSkipVerify bool   `yaml:"tls_insecure_skip_verify"`
 }
 
 type CustomServices []*CustomService
@@ -209,4 +210,16 @@ func (services CustomServices) GetService(serviceType string) *CustomService {
 		}
 	}
 	return nil
+}
+
+func (endpoints CustomEndpoints) GetURL(region, serviceType string) string {
+	r := endpoints.GetRegion(region)
+	if r == nil {
+		return ""
+	}
+	s := r.Services.GetService(serviceType)
+	if s == nil {
+		return ""
+	}
+	return s.URL
 }
