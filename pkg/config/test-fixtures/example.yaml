@@ -1,9 +1,18 @@
 ---
 regions:
 - "eu-west-1"
+- demo10
 
 account-blacklist:
 - 1234567890
+
+endpoints:
+- region: demo10
+  services:
+  - service: ec2
+    url: https://demo10.cloud.internal/api/v2/aws/ec2
+  - service: s3
+    url: https://demo10.cloud.internal:1060
 
 resource-types:
   targets:

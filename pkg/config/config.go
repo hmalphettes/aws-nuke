@@ -28,11 +28,26 @@ type Nuke struct {
 	Accounts         map[string]Account           `yaml:"accounts"`
 	ResourceTypes    ResourceTypes                `yaml:"resource-types"`
 	Presets          map[string]PresetDefinitions `yaml:"presets"`
+	CustomEndpoints  CustomEndpoints              `yaml:"endpoints,omitempty"`
 }
 
 type PresetDefinitions struct {
 	Filters Filters `yaml:"filters"`
 }
+
+type CustomService struct {
+	Service string `yaml:"service"`
+	URL     string `yaml:"url"`
+}
+
+type CustomServices []*CustomService
+
+type CustomRegion struct {
+	Region   string         `yaml:"region"`
+	Services CustomServices `yaml:"services"`
+}
+
+type CustomEndpoints []*CustomRegion
 
 func Load(path string) (*Nuke, error) {
 	var err error
@@ -171,6 +186,26 @@ func (c *Nuke) resolveDeprecations() error {
 
 			a.Filters[replacement] = resources
 			delete(a.Filters, resourceType)
+		}
+	}
+	return nil
+}
+
+// GetRegion returns the custom region or nil when no such custom endpoints are defined for this region
+func (endpoints CustomEndpoints) GetRegion(region string) *CustomRegion {
+	for _, r := range endpoints {
+		if r.Region == region {
+			return r
+		}
+	}
+	return nil
+}
+
+// GetService returns the custom region or nil when no such custom endpoints are defined for this region
+func (services CustomServices) GetService(serviceType string) *CustomService {
+	for _, s := range services {
+		if s.Service == serviceType {
+			return s
 		}
 	}
 	return nil
