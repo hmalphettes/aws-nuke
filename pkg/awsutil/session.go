@@ -1,9 +1,12 @@
 package awsutil
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"strings"
+
+	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -11,11 +14,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/rebuy-de/aws-nuke/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	GlobalRegionID  = "global"
+	GlobalRegionID = "global"
+)
+
+var (
+	// DefaultRegionID The default region. Can be customized for non AWS implementations
 	DefaultRegionID = endpoints.UsEast1RegionID
 )
 
@@ -26,7 +34,8 @@ type Credentials struct {
 	SecretAccessKey string
 	SessionToken    string
 
-	session *session.Session
+	CustomEndpoints config.CustomEndpoints
+	session         *session.Session
 }
 
 func (c *Credentials) HasProfile() bool {
@@ -91,7 +100,7 @@ func (c *Credentials) rootSession() (*session.Session, error) {
 	return c.session, nil
 }
 
-func (c *Credentials) NewSession(region string) (*session.Session, error) {
+func (c *Credentials) NewSession(region, resourceType string) (*session.Session, error) {
 	log.Debugf("creating new session in %s", region)
 
 	global := false
@@ -101,14 +110,47 @@ func (c *Credentials) NewSession(region string) (*session.Session, error) {
 		global = true
 	}
 
-	root, err := c.rootSession()
-	if err != nil {
-		return nil, err
+	var sess *session.Session
+	if customRegion := c.CustomEndpoints.GetRegion(region); customRegion != nil {
+		customService := customRegion.Services.GetService(resourceType)
+		if customService == nil {
+			return nil, ErrSkipRequest(fmt.Sprintf(
+				"service '%s' is not available in region '%s'",
+				resourceType, region))
+		}
+		conf := &aws.Config{
+			Region:   &region,
+			Endpoint: &customService.URL,
+			Credentials: credentials.NewStaticCredentialsFromCreds(
+				credentials.Value{
+					AccessKeyID:     c.AccessKeyID,
+					SecretAccessKey: c.SecretAccessKey,
+					SessionToken:    c.SessionToken,
+				},
+			),
+		}
+		if customService.TLSInsecureSkipVerify {
+			conf.HTTPClient = &http.Client{Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}}
+		}
+		var err error
+		sess, err = session.NewSession(conf)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	sess := root.Copy(&aws.Config{
-		Region: &region,
-	})
+	if sess == nil {
+		root, err := c.rootSession()
+		if err != nil {
+			return nil, err
+		}
+
+		sess = root.Copy(&aws.Config{
+			Region: &region,
+		})
+	}
 
 	sess.Handlers.Send.PushFront(func(r *request.Request) {
 		log.Debugf("sending AWS request:\n%s", DumpRequest(r.HTTPRequest))
