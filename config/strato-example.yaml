@@ -33,5 +33,34 @@ account-blacklist:
 - "999999999999" # production
 
 accounts:
-  "account-id-of-custom-region-demo10": {}
+  "account-id-of-custom-region-demo10":
+    # resource-types:
+    #   targets:
+    #   - EC2DHCPOption
+    presets:
+    - stratoscale
   "000000000000": {} # aws-nuke-example
+
+presets:
+  stratoscale:
+    filters:
+      EC2VPC:
+      - property: tag:Name
+        type: contains
+        value: "Default VPC"
+      EC2Instance:
+      - property: tag:Name
+        type: contains
+        value: "DNS VM for vpc"
+      EC2Volume:
+      - property: tag:Name
+        type: contains
+        value: "DNS VM for vpc"
+      RDSDBParameterGroup:
+      - type: regex
+        value: "^default-"
+      EC2DHCPOption:
+      - property: tag:Name
+        type: regex
+        value: "^.+$"
+        invert: true
