@@ -1,39 +1,39 @@
 regions:
-- demo10
+- stratoscale
 
 # inspired by https://www.terraform.io/docs/providers/aws/guides/custom-service-endpoints.html
 endpoints:
-- region: demo10
+- region: stratoscale
   tls_insecure_skip_verify: true
   services:
   - service: ec2
-    url: https://demo10.cloud.internal/api/v2/aws/ec2
+    url: https://stratoscale.cloud.internal/api/v2/aws/ec2
   - service: s3
-    url: https://demo10.cloud.internal:1060
+    url: https://stratoscale.cloud.internal:1060
   - service: rds
-    url: https://demo10.cloud.internal/api/v2/aws/rds
+    url: https://stratoscale.cloud.internal/api/v2/aws/rds
   - service: elbv2
-    url: https://demo10.cloud.internal/api/v2/aws/elbv2
+    url: https://stratoscale.cloud.internal/api/v2/aws/elbv2
   - service: efs
-    url: https://demo10.cloud.internal/api/v2/aws/efs
+    url: https://stratoscale.cloud.internal/api/v2/aws/efs
   - service: emr
-    url: https://demo10.cloud.internal/api/v2/aws/emr
+    url: https://stratoscale.cloud.internal/api/v2/aws/emr
   - service: autoscaling
-    url: https://demo10.cloud.internal/api/v2/aws/autoscaling
+    url: https://stratoscale.cloud.internal/api/v2/aws/autoscaling
   - service: cloudwatch
-    url: https://demo10.cloud.internal/api/v2/aws/cloudwatch
+    url: https://stratoscale.cloud.internal/api/v2/aws/cloudwatch
   - service: sns
-    url: https://demo10.cloud.internal/api/v2/aws/sns
+    url: https://stratoscale.cloud.internal/api/v2/aws/sns
   - service: iam
-    url: https://demo10.cloud.internal/api/v2/aws/iam
+    url: https://stratoscale.cloud.internal/api/v2/aws/iam
   - service: acm
-    url: https://demo10.cloud.internal/api/v2/aws/acm
+    url: https://stratoscale.cloud.internal/api/v2/aws/acm
 
 account-blacklist:
 - "account-id-of-custom-region-prod" # production
 
 accounts:
-  "account-id-of-custom-region-demo10":
+  "account-id-of-custom-region-stratoscale":
     presets:
     - stratoscale
 
